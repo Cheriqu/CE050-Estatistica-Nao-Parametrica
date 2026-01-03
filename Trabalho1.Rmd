@@ -1,0 +1,201 @@
+---
+title: "Trabalho 1"
+author: "Luiz Francisco, Mateus Fernandes, Mateus Luzzi"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### 1) Determine a função densidade de W
+
+Seja $W$, a variável definida como a razão entre os tempos de vida Y e X, onde $Y \sim Exp(\beta_1)$ e $X \sim Exp(\beta_2)$. A função densidade de $Y$ será dada por 
+$f_Y(y)=\beta_1e^{-\beta_1y}$, com $y\geq0$ e a função densidade de $X$ será dada por 
+$f_X(X)=\beta_2e^{-\beta_2x}$, com $x\geq0$. Para acharmos a função densidade de $W=\frac{Y}{X}$ podemos utilizar o método do Jacobiano. O primeiro passo é definir as variáveis aleatórias auxiliares $W$ e $Z$, sendo $W=\frac{Y}{X}$ e $Z=X$. O Jacobiano será dada por:
+
+$$J[(Y,X)(W,Z)] = \begin{bmatrix}
+\frac{\partial{Y}}{\partial{w}}   &   \frac{\partial{Y}}{\partial{z}} \\
+\frac{\partial{X}}{\partial{w}}   &   \frac{\partial{X}}{\partial{z}} \\
+\end{bmatrix} =
+\begin{bmatrix}
+\frac{\partial{}}{\partial{w}}WZ   &   \frac{\partial{}}{\partial{z}}WZ \\
+\frac{\partial{}}{\partial{w}}Z   &   \frac{\partial{}}{\partial{z}}Z \\ 
+\end{bmatrix} =
+\begin{bmatrix}
+z   &   w \\
+0   &   1 \\
+\end{bmatrix} = z*1 - w*0 = z$$
+
+Podemos escrever a função de densidade conjunta $f_{W,Z}(w,z) = f_{Y,X}(y,x)|J|$, onde a função densidade conjunta, pela independência entre $Y$ e $X$, é dada por $f_{Y,X}(y,x) = f_Y(y)f_X(x)$, então escrevemos: 
+
+$$
+f_{W,Z}(w,z) =  f_Y(y)f_X(x)|J| = \beta_1e^{-\beta_1zw} \beta_2e^{-\beta_2z}z =
+z\beta_1\beta_2e^{-z(\beta_1w+\beta_2)}
+$$ 
+$$
+f_W(w) =  \frac{\beta_1\beta_2}{(\beta_1w+\beta_2)^2}
+$$ 
+
+### 2) Justifique ser a função encontrada em 1) uma função densidade de probabilidade
+
+
+A função deve ser não negativa para todo $w>0$.
+
+$\beta_1$ e $\beta_2$ são positivos por serem parâmetros de uma exponencial e $w=\frac{y}{x}>0$, pois $y$ e $x$ são positivos também. Portanto:
+
+$$  0<w<\beta_1w<\beta_1w+\beta_2<(\beta_1w+\beta_2)^2<\frac{1}{(\beta_1w+\beta_2)^2}<\frac{\beta_1\beta_2}{(\beta_1w+\beta_2)^2}$$
+
+A integral da função densidade de probabilidade sobre todo o seu domínio deve ser igual a 1.
+
+$$  \int_{0}^{\infty} \frac{\beta_1\beta_2}{(\beta_1w+\beta_2)^2} dw =
+-\frac{\beta_2}{\beta_1w+\beta_2}|_0^\infty  = 0 -(-1) = 1 $$
+
+### 3) Qual a função densidade de $W$ no caso de $\beta_1=\beta_2$
+
+$$f_W(w) =  \frac{\beta_1\beta_2}{(\beta_1w+\beta_2)^2}=\frac{\beta_1^2}{(\beta_1w+\beta_1)^2}=\frac{\beta_1^2}{(\beta_1(w+1))^2}=\frac{\beta_1^2}{\beta_1^2(w+1)^2}=\frac{1}{(w+1)^2}$$
+
+
+### 4) Calcule o valor esperado de $W$ quando $\beta_1\neq\beta_2$
+
+$$E[W] = \int_{0}^{\infty} w \cdot \frac{\beta_1\beta_2}{(\beta_1w+\beta_2)^2} dw$$
+
+Para resolver esta integral, podemos fazer a substituição $u=\beta_1w+\beta_2$, então $\partial u=\beta_1\partial w$.
+
+$$E[W] = \int_{\beta_2}^{\infty} \frac{u-\beta_2}{\beta_1u^2} dw =
+\int_{\beta_2}^{\infty} \frac{u}{\beta_1u^2} dw - \int_{\beta_2}^{\infty} \frac{\beta_2}{\beta_1u^2} dw = \frac{1}{\beta_1}\int_{\beta_2}^{\infty} \frac{1}{u} dw - \frac{\beta_2}{\beta_1} \int_{\beta_2}^{\infty} \frac{1}{u^2} dw $$
+
+$$
+= \frac{1}{\beta_1}\ln|u||_{\beta_2}^{\infty} - \frac{\beta_2}{\beta_1} [-\frac{1}{u}]|_{\beta_2}^{\infty} = \frac{1}{\beta_1}[\ln|\infty|-\ln|\beta_2|]-\frac{\beta_2}{\beta_1} [-\frac{1}{\infty}-(-\frac{1}{\beta_2})] = \infty-\frac{\beta_2}{\beta_1}(0-(-\frac{1}{\beta_2})) = \infty-\frac{1}{\beta_1} = \infty
+$$
+
+### 5) Para a função densidade calculada em 1) calcule $P[W>t]$ onde $t$ é uma constante maior ou igual a 0
+$$P[W>t] = f_W(w)dw =  \int_{t}^{\infty}\frac{\beta_1\beta_2}{(\beta_1w+\beta_2)^2} dw$$
+Seja $u=\beta_1w+\beta_2$, então $\partial u=\beta_1\partial w$. Quando $w=t$, então $u=\beta_1t+\beta_2$.
+$$P[W>t] = \int_{\beta_1t+\beta_2}^{\infty}\frac{1}{u^2} du = [-\frac{1}{u}]|_{\beta_1t+\beta2}^{\infty} = 0 - (-\frac{1}{\beta_1t+\beta_2})=\frac{1}{\beta_1t+\beta_2}$$
+
+### 6) Sob a hipótese que $\beta_1=\beta_2$ calcule $P[W>t]$
+
+$$P[W>t] = \int_{t}^{\infty} \frac{1}{(w+1)^2} dw$$
+Substituindo $u=w+1$.
+
+$$ P[W>t]  = \int_t^\infty \frac{1}{u^2}du = -\frac{1}{u}|_t^\infty = -\frac{1}{w+1}|_t^\infty = -[\frac{1}{\infty+1}-\frac{1}{t+1}] = \frac{1}{t+1}$$
+
+
+### 7.1) Qual a interpretação para a hipótese $H_1$ quando pensamos em X e em Y?
+
+A hipótese $H_1$  afirma que a média da variável aleatória W é maior do que 1. Isso implica que, sob a hipótese alternativa, a razão entre os tempos de vida Y e X tem uma média maior do que 1. Em termos práticos, isso sugere que os dispositivos produzidos pelo processo A (com tempo de vida Y) têm, em média, um tempo de vida maior do que os dispositivos produzidos pelo processo B (com tempo de vida X). Portanto, $H_1$ indica uma diferença significativa e a favor do processo A em termos de tempo de vida médio dos dispositivos quando comparado ao processo B.
+
+### 7.2) - É possível a construção de um teste paramétrico para avaliação destas hipóteses considerando um nível de significância $\alpha$?
+
+Não, realmente não é possível construirmos um teste paramétrico para a avaliação destas hipóteses. Mesmo que encontramos a função de densidade da nossa variável W, percebemos que ela segue uma distribuição Cauchy, também provado anteriormente, então ela não possui esperança finita. Como não possuímos sua esperança (média) não é possível criar um teste de hipóteses paramétrico para esse caso, pelo menos ainda não tenho conhecimento sobre a criação de um método alternativo paramétrico aos tradicionais para uma distribuição cauchy. Então, como alternativa nesse caso, utiliza-se mais casos não paramétricos.
+
+### 8.a) Considerando $\beta_1=\beta_2$ a probabilidade de $W>1$
+
+$$P[W>t] = \frac{1}{1+t} = \frac{1}{1+1}= \frac{1}{2}$$
+
+### 8.b) Interprete o que significa $W=1$ e $W>1$ considerando as variáveis Y e X
+
+$W=1$: significa que o tempo de vida médio dos dispositivos produzidos pelos processos A (representado por Y) e B (representado por X) é o mesmo, ou seja, não há diferença significativa no tempo de vida médio entre os dois processos. Ambos os processos produzem dispositivos com um desempenho médio semelhante.
+
+$W>1$: significa que o tempo de vida médio dos dispositivos produzidos pelo processo A (representado por Y) é maior do que o tempo de vida médio dos dispositivos produzidos pelo processo B (representado por X). Nesse caso, o processo A é considerado superior ao processo B em termos de longevidade dos dispositivos.
+
+### 8.c) Estabeleça a distribuição de probabilidade de uma binomial com parâmetros 20 e $\theta^*= P[W>1]$
+
+```{r echo=FALSE}
+Acumulada <- vector("numeric",20)
+Pontual <- vector("numeric",20)
+for (i in 1:20){
+Pontual[i] <- dbinom(x=i,size = 20,p=0.5)
+Acumulada[i] <- pbinom(q=i,size=20,prob = 0.5)
+}
+library(knitr)
+kable(data.frame(n=1:20,Pontual,Acumulada))
+```
+
+### 8.d) Estabeleça a regra de decisão definindo o número de sucessos que leva para rejeição da hipótese nula, considerando o nível de significância de 5% e as hipóteses $H_0: \alpha = \alpha^*$ ; $H_1: \alpha > \alpha^*$
+
+```{r echo=FALSE}
+kable(data.frame(n=c(13:20),Pontual = Pontual[c(13:20)], Acumulada = c(Acumulada[c(13:20)])))
+```
+
+A regra de decisão definida consiste em rejeitar a hipótese alternativa $H_0$ quando a processo binomial representado por $W>1$ ocorrer na região onde o número de sucessos é maior ou igual a 13 ($\geq$ 13 ou > 12).
+
+### 9) Com base no teorema da transformação integral estabeleça a geração de 20 observações de acordo com a distribuição de probabilidade dada em 3). Com base neste vetor, de 20 observações, defina se houve ou não a rejeição da hipótese nula descrita no tópico d) do item 8)
+
+$$P[W>x] = \int_x^\infty f_W(w)dw =  \int_x^\infty\frac{1}{(w+1)^2}dw$$
+
+Agora, queremos encontrar a função inversa $F_W^{-1}(u)$, onde $u$ é uma variável aleatória uniformemente distribuída entre 0 e 1. Vamos definir $u=P[W>x]$ e resolver para x:
+
+$$ u = \int_x^\infty \frac{1}{(w+1)^2}dw = -\frac{1}{w+1}|_x^\infty = -[\frac{1}{\infty+1}-\frac{1}{x+1}] = \frac{1}{x+1}$$
+
+$$ u = \frac{1}{x+1} \rightarrow \frac{1}{u} = x+1\rightarrow \frac{1}{u} -1 =x$$
+
+
+Temos que $F_W^{-1}(u):x=\frac{1}{u}-1$. Simulando computacionalmente uma uniforme.
+
+```{r}
+set.seed(123)
+u <- runif(20)
+observacoes_W <- 1 / u - 1
+sum(observacoes_W > 1)
+```
+Como o resultado não ocorreu na região de rejeição, no intervalo (13,20), não rejeitamos a hipótese $H_0: \mu_W=1$.
+
+
+### 10) Repita o processo dado em 9) 10.000 vezes e apresente a proporção de casos onde houve a rejeição da hipótese nula. (apresente 5 vetores de 20 observações, destacando em cada um deles se houve ou não a rejeição da hipótese nula)
+
+```{r}
+set.seed(123)
+gera_w <- function(){
+  x <- runif(20)
+  observacoes_W <- 1 / x - 1
+  sum(observacoes_W > 1) >= 13
+}
+amostras <- replicate(10000, gera_w())
+mean(amostras)
+amostras[0:5]
+```
+
+A proporção de casos em que a hipótese nula foi rejeitada em 10.000 repetições é de aproximadamente 13%, maior que o $\alpha=5\%$ definido. Portanto, esse processo está reportando um nível de confiança de 87%, o que é menor que o nominal.
+
+### 11) Considerando o resultado obtido em 6) calcule o 3o quartil de $W$ (quando $\beta_1=\beta_2$). 
+
+$$ P[W\leq t] = 0.75 \rightarrow P[W > t] = 1-0.75$$
+Em 6) já calculamos $P[W > t]$:
+$$ P[W > t] = 1-0.75 = \frac{1}{t+1}\rightarrow0.25 = \frac{1}{t+1}\rightarrow t+1 = \frac{1}{0.25} \rightarrow t+1 = 4 \rightarrow t=3$$
+
+### 12) Com os 10.000 conjuntos com 20 observações gerados na questão 9) estabeleça o intervalo com 80% de confiança para o 3o quartil. Verifique quantos destes 10.000 intervalos contém o verdadeiro 3o quartil calculado em 11). Apresente 5 vetores de 20 observações, destacando em cada um deles os limites do intervalo de confiança, indicando em cada um deles se contém ou não o terceiro quartil
+
+
+```{r}
+
+n_amostras <- 10000
+tamanho_amostra <- 20
+
+amostras <- 1/matrix(runif(n_amostras * tamanho_amostra), nrow = n_amostras)-1
+
+calcula_Q3 <- function(x) {
+  quantile(x, probs = 0.75)
+}
+set.seed(123)  
+cobertura <- numeric(n_amostras)
+limite_inferior <- numeric(n_amostras)
+limite_superior <- numeric(n_amostras)
+for (i in 1:n_amostras) {
+  amostra_aleatoria <- sample(amostras[i, ], tamanho_amostra, replace = TRUE)
+  limite_inferior[i] <- quantile(amostra_aleatoria, probs = 0.1)
+  limite_superior[i] <- quantile(amostra_aleatoria, probs = 0.9)
+  cobertura[i] <- limite_inferior[i] <= 3 & limite_superior[i] >= 3
+}
+porcentagem_cobertura <- mean(cobertura) * 100
+porcentagem_cobertura
+
+df <- data.frame(Inferior = limite_inferior[1:5], Superior = limite_superior[1:5],
+                 Cobertura = cobertura[1:5])
+df$Cobertura <- ifelse(df$Cobertura == 1, "TRUE", "FALSE")
+kable(df)
+```
+
+A porcentagem de cobertura obtida foi de 84,72%, maior que a taxa nominal de 80% pretendida.

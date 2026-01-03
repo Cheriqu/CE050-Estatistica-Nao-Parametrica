@@ -1,0 +1,507 @@
+---
+lang: "pt-br"
+output:
+  pdf_document:
+    includes:
+      in_header: mystyles.tex
+  html_document:
+    df_print: paged
+---
+
+\begin{titlepage}
+\centering
+\includegraphics[width=3cm]{logo.jpg}
+\vfill
+{\Huge CE050 - Estatística Não Paramétrica \par}
+{\huge Avaliação \par}
+\vspace{1cm}
+{\Large Luiz Henrique Barretta Francisco - GRR20213026 \par}
+\vfill
+{\large outubro/2023 \par}
+\end{titlepage}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, echo=FALSE, results=FALSE, message=FALSE}
+library(tidyverse)
+library(knitr)
+
+bint <- function(n, p, obs = NULL, h1 = "bilateral", alpha = 0.05){
+  tb <- data.frame(x = 0:n,
+                   d = dbinom(0:n, n, prob = p),
+                   p = pbinom(0:n, n, prob = p))
+  threshold <- 1 - alpha
+  if (h1 == "esquerda") {
+    x_threshold <- max(tb$x[tb$p < alpha])
+    if(!is.null(obs)){
+    p_valor <- pbinom(obs, n, prob = p)
+    significancia <- 1 - sum(dbinom(0:obs, n, prob = p))}
+  } else if (h1 == "direita") {
+    x_threshold <- min(tb$x[tb$p >= threshold])
+    if(!is.null(obs)){
+    p_valor <- 1 - pbinom(obs - 1, n, prob = p)
+    significancia <- 1 - sum(dbinom(obs:n, n, prob = p))}
+  } else {
+    x_left <- max(tb$x[tb$p < alpha/2])
+    x_right <- min(tb$x[tb$p >= 1 - alpha/2])
+    if(!is.null(obs)){
+    p_valor <- dbinom(obs, n, prob = p)
+    p_valor_ext <- sum(tb$d[tb$d < p_valor])
+    p_valor <- p_valor + p_valor_ext
+    significancia <- 1 - p_valor}
+  }
+  ifelse(!is.null(obs),
+         plot <- ggplot(data = tb, aes(x = x, y = d)) +
+           geom_bar(stat = "identity", fill = factor(ifelse(tb$x==obs,"black","blue")), color = "blue")+
+           labs(x = "x", y = "Probabilidade") +
+           theme_minimal(),
+         plot <- ggplot(data = tb, aes(x = x, y = d)) +
+           geom_bar(stat = "identity", fill = "blue")+
+           labs(x = "x", y = "Probabilidade") +
+           theme_minimal())
+  
+  if (h1 == "esquerda") {
+    plot <- plot + geom_vline(xintercept = x_threshold +.5, color = "black", linetype = "dashed") +
+    geom_text(aes(x = x_threshold -.5, y = max(d), label = paste("<=", x_threshold)), color = "black")
+    hipotese <- cat("Hipótese Nula (H0): p = ", p, "; Hipótese Alternativa (H1) p < ", p)
+  } else if (h1 == "direita") {
+    plot <- plot + geom_vline(xintercept = x_threshold -.5, color = "black", linetype = "dashed") +
+      geom_text(aes(x = x_threshold +.5, y = max(d), label = paste(">=",x_threshold)), color = "black")
+    hipotese <- cat("Hipótese Nula (H0): p = ", p, "; Hipótese Alternativa (H1) p > ", p)
+  } else {
+    plot <- plot +
+      geom_vline(xintercept = x_left +.5, color = "black", linetype = "dashed") +
+      geom_text(aes(x = x_left -.5, y = max(d), label = paste("<=",x_left)), color = "black") +
+      geom_vline(xintercept = x_right -.5, color = "black", linetype = "dashed") +
+      geom_text(aes(x = x_right +.5, y = max(d), label = paste(">=",x_right)), color = "black")
+    hipotese <- cat("Hipótese Nula (H0): p = ", p, "; Hipótese Alternativa (H1) p =!= ", p)
+  }
+  ifelse(!is.null(obs),
+         return(list(
+           data = round(tb, 6), significancia = significancia, plot = plot,
+           hipotese = hipotese,
+           decisao = cat(paste("\nRegra de decisão:\nSe p-valor < alpha (",alpha,") : Rejeita-se H0\nSe p_valor >= alpha (",alpha,"): Não rejeita-se H0")),
+           regra = cat("\nNível de significância: ", round(significancia*100,4),"%"),
+           p_valor = cat("\nValor de p:", round(p_valor,6)))),
+         return(list(data = round(tb, 6), plot = plot)))
+}
+```
+
+### 1)
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+n <- 18
+p <- 0.25
+obs <- 0
+ex1 <- bint(n, p, obs)
+ex1$plot
+knitr::kable(ex1$data, caption = paste("Binomial (",n,",",p,")"),
+             col.names = c("X", "Pontual", "Acumulada"))
+```
+
+Como mostrado acima, o valor observado na amostra (0) ocorreu na região de rejeição (X $\leq$ 0 ou X $\geq$ 8), e portanto rejeitamos a hipótese $H_0: p = 0.25$. Temos assim relevância estatística para acreditar que a amostra observada não têm a mesma probabilidade de exibir a característica A apresentada pela espécie em geral.
+
+### 2)
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+n <- 16
+p <- 0.4
+obs <- 8
+h1 <- "direita"
+ex2 <- bint(n, p, obs, h1)
+ex2$plot
+knitr::kable(ex2$data, caption = paste("Binomial (",n,",",p,")"),
+             col.names = c("X", "Pontual", "Acumulada"))
+```
+
+Como mostrado acima, o valor observado na amostra (8) não ocorreu na região de rejeição (X $\geq$ 10), e portanto não rejeitamos a hipótese $H_0: p = 0.40$.
+
+### 3)
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+n <- 15
+p <- 0.4
+obs <- 3
+ex3 <- bint(n, p, obs)
+ex3$plot
+knitr::kable(ex3$data, caption = paste("Binomial (",n,",",p,")"),
+             col.names = c("X", "Pontual", "Acumulada"))
+```
+
+Como mostrado acima, o valor observado na amostra (3) não ocorreu na região de rejeição (X $\leq$ 1 ou X $\geq$ 10), e portanto não rejeitamos a hipótese $H_0: p = 0.40$.
+
+### 4)
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+n <- 7
+p <- 0.3
+obs <- 5
+h1 <- "direita"
+ex4 <- bint(n, p, obs, h1)
+ex4$plot
+knitr::kable(ex4$data, caption = paste("Binomial (",n,",",p,")"),
+             col.names = c("X", "Pontual", "Acumulada"))
+```
+
+Como mostrado acima, o valor observado na amostra (5) ocorreu na região de rejeição (X $\geq$ 4), e portanto rejeitamos a hipótese $H_0: p = 0.30$. Temos assim relevância estatística para assumir $H_1: p > 0.30$, ou seja, que mais de 30% dos eleitores aprovam a proposição.
+
+### 5)
+
+Para encontrar os valores do intervalo de confiança para o terceiro quartil, deve-se encontrar os valores r e s, para serem utilizados como as posições da amostra. Como a amostra tem mais de 20 dados, podemos aplicar a aproximação pelo Teorema Central do Limite.
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+x <- pbinom(0:30, 30, 0.75)
+r <- sum(x < 0.1)
+s <- sum(x < 0.9) + 1
+cat(paste("r:",r,"; s:",s))
+alturas <- sort(c(20.5, 40, 60.5, 22, 42, 62, 28, 43, 62.8, 29.5, 43.5, 63, 32, 44, 66, 34, 48, 72, 35, 52, 83, 38, 54, 83.8, 39.8, 57, 90, 40, 60, 110))
+X <- alturas[c(r,s)]
+```
+
+Utilizando os valores posicionais de r e s calculados, obtemos que o Intervalo de Confiança 80% para o terceiro quartil é:
+
+$$ X^{(`r r`)} = `r X[1]` \hspace{1cm} X^{(`r s`)} = `r X[2]` \hspace{1cm} IC_{80\%}^{Q_{3}} = [`r X[1]`,`r X[2]`]$$
+
+### 6)
+Hipótese do pesquisador: A altura das árvores segue uma distribuição uniforme entre 10m e 120m.
+
+$$H_0:Y \sim U(10,120);  \hspace{1cm} H_1: Y \not\sim U(10,120)$$ 
+
+A distribuição de referência para teste dessa hipótese será a Qui-Quadrado com GL = número de categorias - 1 = 4 - 1 = 3.
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+ex <- data.frame(
+  Frequência = c("Observado", "Esperado"),
+  q1 = c(7, 7.5),
+  q2 = c(17, 7.5),
+  q3 = c(5, 7.5),
+  q4 = c(1, 7.5)
+)
+nomes <- c("Quartis", "(10,37.5]", "(37.5,65]", "(65,92.5]", "(92.5,120]")
+kable(ex, col.names = nomes)
+t <- lapply(ex[, -1], function(x) (x[1] - x[2])^2/x[2])
+t_t <- sum(t$q1, t$q2, t$q3, t$q4)
+p_valor <- round(pchisq(t_t,3, lower.tail = FALSE),8)
+cat(paste("Valor de p:", p_valor))
+```
+
+$$ \chi_3^2 = \sum_{i=1}^4 \frac{(O_i-E_i)^2}{E_i} = \frac{(`r ex$q1[1]`-`r ex$q1[2]`)^2}{7.5} + \frac{(`r ex$q2[1]`-`r ex$q2[2]`)^2}{7.5} + \frac{(`r ex$q3[1]`-`r ex$q3[2]`)^2}{7.5} + \frac{(`r ex$q4[1]`-`r ex$q4[2]`)^2}{7.5} =  `r t_t`$$
+
+```{r, warning=FALSE, echo=FALSE, results='hide', message=FALSE, plot=TRUE}
+x <- seq(0, 20, by = 0.01)
+density <- dchisq(x, df = 3)
+df <- data.frame(x = x, density = density)
+alpha <- qchisq(0.95, 3)
+ggplot(df, aes(x = x, y = density)) +
+  geom_line(color = "black", size = 1) +
+  labs(x = "Valores", y = "Densidade", title = "Qui-quadrado (GL = 3): Distribuição Uniforme") +
+  geom_vline(xintercept = t_t, color = "red", linetype = "dashed") + 
+  geom_text(aes(x = round(t_t,4)-1, y = max(density), label = round(t_t,2)), color = "black") +
+  geom_vline(xintercept = alpha, color = "blue", linetype = "dashed") + 
+  geom_text(aes(x = round(alpha,4)-2, y = max(density), label = paste("alpha: ", round(alpha,2))), color = "black")
+  theme_minimal()
+```
+
+Conclusão: Como o valor de p (`r p_valor`) é menor que o $\alpha=0.05$ estabelecido, rejeitamos a hipótese nula de que a altura das árvores segue uma distribuição uniforme entre 10m e 120m.
+
+### 7)
+Hipótese do pesquisador: A altura das árvores segue uma distribuição normal.
+
+$$H_0:Y \sim N(\mu,\sigma^2);  \hspace{1cm} H_1: Y \not\sim N(\mu,\sigma^2)$$ 
+Como não foram especificados os valores de $\mu$ e $\sigma$, teremos de os estimar pela amostra e realizar as seguintes substituições $\mu = \bar{x}$ e $\sigma = s$. Por conta dessa estimativa, a distribuição de referência utilizada será a Qui-Quadrado com GL = número de categorias - número de parâmetros estimados - 1 = 4 - 2 - 1 = 1.
+Os quartis serão construídos da forma: $$Q_1 = \bar{x}+s*Z_{0.25}; \hspace{1cm} Q_2 = \bar{x}; \hspace{1cm} Q_3 = \bar{x}+s*Z_{0.75}.$$ 
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+alturas <- c(20.5, 40, 60.5, 22, 42, 62, 28, 43, 62.8, 29.5, 43.5, 63, 32, 44, 66, 34, 48, 72, 35, 52, 83, 38, 54, 83.8, 39.8, 57, 90, 40, 60, 110)
+mu <- mean(alturas)
+s <- sd(alturas)
+q <- round(c(mu+s*qnorm(0.25),mu,mu+s*qnorm(0.75)),2)
+q
+ex <- data.frame(
+  Frequência = c("Observado", "Esperado"),
+  q1 = c(sum(alturas <= q[1]), 7.5),
+  q2 = c(sum(alturas > q[1] & alturas <= q[2]), 7.5),
+  q3 = c(sum(alturas > q[2] & alturas <= q[3]), 7.5),
+  q4 = c(sum(alturas > q[3]), 7.5)
+)
+nomes <- c("Quartis", paste("(-Inf,",q[1],"]"), paste("(",q[1],",",q[2],"]"), paste("(",q[2],",",q[3],"]"),
+           paste("(",q[3],", Inf)"))
+kable(ex, col.names = nomes)
+t <- lapply(ex[, -1], function(x) (x[1] - x[2])^2/x[2])
+t_t <- sum(t$q1, t$q2, t$q3, t$q4)
+p_valor <- round(pchisq(t_t,3, lower.tail = FALSE),8)
+cat(paste("Valor de p:", p_valor))
+```
+
+$$ \chi_1^2 = \sum_{i=1}^4 \frac{(O_i-E_i)^2}{E_i} = \frac{(`r ex$q1[1]`-`r ex$q1[2]`)^2}{7.5} + \frac{(`r ex$q2[1]`-`r ex$q2[2]`)^2}{7.5} + \frac{(`r ex$q3[1]`-`r ex$q3[2]`)^2}{7.5} + \frac{(`r ex$q4[1]`-`r ex$q4[2]`)^2}{7.5} =  `r t_t`$$
+
+```{r, warning=FALSE, echo=FALSE, results='hide', message=FALSE, plot=TRUE}
+x <- seq(0, 20, by = 0.01)
+density <- dchisq(x, df = 1)
+df <- data.frame(x = x, density = density)
+alpha <- qchisq(0.95, 1)
+ggplot(df, aes(x = x, y = density)) +
+  geom_line(color = "black", size = 1) +
+  labs(x = "Valores", y = "Densidade", title = "Qui-quadrado (GL = 1): Distribuição Normal") +
+  geom_vline(xintercept = t_t, color = "red", linetype = "dashed") + 
+  geom_text(aes(x = round(t_t,4)+1, y = 3.8, label = round(t_t,2)), color = "black") +
+  geom_vline(xintercept = alpha, color = "blue", linetype = "dashed") + 
+  geom_text(aes(x = round(alpha,4)+2, y = 3.8, label = paste("alpha: ", round(alpha,2))), color = "black")
+  theme_minimal()
+```
+
+Conclusão: Como o valor de p (`r p_valor`) é maior que o $\alpha=0.05$ estabelecido, não rejeitamos a hipótese nula de que a altura das árvores segue uma distribuição normal.
+
+
+### 8)
+Hipótese do pesquisador: A altura das árvores segue uma distribuição exponencial.
+
+$$H_0:Y \sim Exp(\theta);  \hspace{1cm} H_1: Y \not\sim Exp(\theta)$$ 
+Como não foi especificado o valor de $\theta$, será necessário o estimar pela amostra e realizar as seguinte substituição $\theta = \frac{1}{\bar{x}}$. Por conta dessa estimativa, a distribuição de referência utilizada será a Qui-Quadrado com GL = número de categorias - número de parâmetros estimados - 1 = 4 - 1 - 1 = 2.
+Os quartis serão construídos da forma: $$Q_1 = \frac{-\ln(1-0.25)}{\hat{\theta}}; \hspace{1cm} Q_2 = \frac{-\ln(1-0.5)}{\hat{\theta}}; \hspace{1cm} Q_3 = \frac{-\ln(1-0.75)}{\hat{\theta}}.$$ 
+
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+theta <- 1/mean(alturas)
+q <- round(c(-log(1-.25)/theta,-log(1-.5)/theta,-log(1-.75)/theta),1)
+ex <- data.frame(
+  Frequência = c("Observado", "Esperado"),
+  q1 = c(sum(alturas <= q[1]), 7.5),
+  q2 = c(sum(alturas > q[1] & alturas <= q[2]), 7.5),
+  q3 = c(sum(alturas > q[2] & alturas <= q[3]), 7.5),
+  q4 = c(sum(alturas > q[3]), 7.5)
+)
+nomes <- c("Quartis", paste("(0,",q[1],"]"), paste("(",q[1],",",q[2],"]"), paste("(",q[2],",",q[3],"]"),
+           paste("(",q[3],", Inf)"))
+kable(ex, col.names = nomes)
+t <- lapply(ex[, -1], function(x) (x[1] - x[2])^2/x[2])
+t_t <- sum(t$q1, t$q2, t$q3, t$q4)
+p_valor <- round(pchisq(t_t,2, lower.tail = FALSE),8)
+cat(paste("Valor de p:", p_valor))
+```
+$$ \chi_2^2 = \sum_{i=1}^4 \frac{(O_i-E_i)^2}{E_i} = \frac{(`r ex$q1[1]`-`r ex$q1[2]`)^2}{7.5} + \frac{(`r ex$q2[1]`-`r ex$q2[2]`)^2}{7.5} + \frac{(`r ex$q3[1]`-`r ex$q3[2]`)^2}{7.5} + \frac{(`r ex$q4[1]`-`r ex$q4[2]`)^2}{7.5} =  `r t_t`$$
+
+```{r, warning=FALSE, echo=FALSE, results='hide', message=FALSE, plot=TRUE}
+x <- seq(0, 30, by = 0.01)
+density <- dchisq(x, df = 2)
+df <- data.frame(x = x, density = density)
+alpha <- qchisq(0.95, 2)
+ggplot(df, aes(x = x, y = density)) +
+  geom_line(color = "black", size = 1) +
+  labs(x = "Valores", y = "Densidade", title = "Qui-quadrado (GL = 2): Distribuição Exponencial") +
+  geom_vline(xintercept = t_t, color = "red", linetype = "dashed") + 
+  geom_text(aes(x = round(t_t,4)-1.5, y = max(density), label = round(t_t,2)), color = "black") +
+  geom_vline(xintercept = alpha, color = "blue", linetype = "dashed") + 
+  geom_text(aes(x = round(alpha,4)-2.5, y = max(density), label = paste("alpha: ", round(alpha,2))), color = "black")
+  theme_minimal()
+```
+
+Conclusão: Como o valor de p (`r p_valor`) é menor que o $\alpha=0.05$ estabelecido, rejeitamos a hipótese nula de que a altura das árvores segue uma distribuição exponencial.
+
+
+### 9)
+Hipótese do pesquisador: O tempo de reação segue uma distribuição exponencial.
+
+
+$$H_0:Y \sim Exp(\theta);  \hspace{1cm} H_1: Y \not\sim Exp(\theta)$$ 
+Como não foi especificado o valor de $\theta$, será necessário o estimar pela amostra e realizar as seguinte substituição $\theta = \frac{1}{\bar{x}}$, que é o estimador de máxima verossimilhança para $\theta$. Por conta dessa estimativa, a distribuição de referência utilizada será a Qui-Quadrado com GL = número de categorias - número de parâmetros estimados - 1 = 4 - 1 - 1 = 2.
+Os quartis serão construídos da forma: $$Q_1 = \frac{-\ln(1-0.25)}{\hat{\theta}}; \hspace{1cm} Q_2 = \frac{-\ln(1-0.5)}{\hat{\theta}}; \hspace{1cm} Q_3 = \frac{-\ln(1-0.75)}{\hat{\theta}}.$$ 
+
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+tempo <- c(1, 1.2, 2.2, 2.5, 2.7, 3, 3.6, 3.8, 4.9, 6.1, 6.6, 6.7, 10.2, 11.5, 12.3, 14.8, 20.8, 26.1, 31.3, 31.5)
+theta <- 1/mean(tempo)
+q <- round(c(-log(1-.25)/theta,-log(1-.5)/theta,-log(1-.75)/theta),1)
+ex <- data.frame(
+  Frequência = c("Observado", "Esperado"),
+  q1 = c(sum(tempo <= q[1]), 5),
+  q2 = c(sum(tempo > q[1] & tempo <= q[2]), 5),
+  q3 = c(sum(tempo > q[2] & tempo <= q[3]), 5),
+  q4 = c(sum(tempo > q[3]), 5)
+)
+nomes <- c("Quartis", paste("(0,",q[1],"]"), paste("(",q[1],",",q[2],"]"), paste("(",q[2],",",q[3],"]"),
+           paste("(",q[3],", Inf)"))
+kable(ex, col.names = nomes)
+t <- lapply(ex[, -1], function(x) (x[1] - x[2])^2/x[2])
+t_t <- sum(t$q1, t$q2, t$q3, t$q4)
+p_valor <- round(pchisq(t_t,2, lower.tail = FALSE),8)
+cat(paste("Valor de p:", p_valor))
+```
+
+
+$$ \chi_2^2 = \sum_{i=1}^4 \frac{(O_i-E_i)^2}{E_i} = \frac{(`r ex$q1[1]`-`r ex$q1[2]`)^2}{5} + \frac{(`r ex$q2[1]`-`r ex$q2[2]`)^2}{5} + \frac{(`r ex$q3[1]`-`r ex$q3[2]`)^2}{5} + \frac{(`r ex$q4[1]`-`r ex$q4[2]`)^2}{5} =  `r t_t`$$
+
+```{r, warning=FALSE, echo=FALSE, results='hide', message=FALSE, plot=TRUE}
+x <- seq(0, 30, by = 0.01)
+density <- dchisq(x, df = 2)
+df <- data.frame(x = x, density = density)
+alpha <- qchisq(0.95, 2)
+ggplot(df, aes(x = x, y = density)) +
+  geom_line(color = "black", size = 1) +
+  labs(x = "Valores", y = "Densidade", title = "Qui-quadrado (GL = 2): Distribuição Exponencial") +
+  geom_vline(xintercept = t_t, color = "red", linetype = "dashed") + 
+  geom_text(aes(x = round(t_t,4)+1, y = max(density), label = round(t_t,2)), color = "black") +
+  geom_vline(xintercept = alpha, color = "blue", linetype = "dashed") + 
+  geom_text(aes(x = round(alpha,4)+2.5, y = max(density), label = paste("alpha: ", round(alpha,2))), color = "black")
+  theme_minimal()
+```
+
+Conclusão: Como o valor de p (`r p_valor`) é maior que o $\alpha=0.05$ estabelecido, não rejeitamos a hipótese nula de que o tempo de reação segue uma distribuição exponencial.
+
+### 10) IC 95% de confiança para a média
+a) Levando em consideração a distribuição da variável como sendo exponencial
+
+Para encontrar os valores do intervalo de confiança para a média, devemos lembrar do referencial teórico que nos diz que a soma de variável aleatórias independentes seguindo uma distribuição exponencial em comum segue uma distribuição Gama.
+
+$$ X_i \sim Exp(\theta) \hspace{0.5cm} \rightarrow \hspace{0.5cm} \sum_{i=1}^n X_i \sim G(n, \theta) $$
+No caso da amostra acima,
+
+$$ G = \sum_{i=1}^{20} X_i = X_1 + \dots + X_{20} = S \sim G(20,\theta)$$
+
+Sabe-se também a relação direta entre a distribuição Gama e a distribuição Qui-Quadrado: $\chi^2 = 2 \theta  G \sim \chi^2_{2n}$.
+
+$$\chi^2 = 2 \theta  S \sim \chi^2_{2n}$$
+Da definição da média amostral, podemos encontrar um substituto para a variável S. 
+
+$$ \bar{X} = \frac{\sum_{i=1}^n{X_i}}{n} \hspace{0.5cm} \rightarrow \hspace{0.5cm}
+n\bar{X} = \sum_{i=1}^n{X_i} \hspace{0.5cm} \rightarrow \hspace{0.5cm} 
+n\bar{X} = S \hspace{0.5cm}$$
+
+Obtendo assim,
+$$\chi^2 = 2 * \theta  n\bar{x} \sim \chi^2_{2n}  \hspace{0.5cm} \rightarrow \hspace{0.5cm}
+40  * \theta  \bar{x} \sim \chi^2_{40}$$
+
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+q <- round(c(qchisq(.025, 40),qchisq(.975, 40)),2)
+```
+Consultando os quantis de $\frac{\alpha}{2}$ e $1-\frac{\alpha}{2}$ da distribuição Qui-Quadrado com 40 graus de liberdade, obtemos:
+
+$$ P(`r q[1]` < \chi^2_{40} < `r q[2]`) = 1-\alpha = 95\%$$
+
+Lembremos que $40  * \theta  \bar{x} \sim \chi^2_{40}$, portanto:
+
+$$ P(`r q[1]` < 40  * \theta  \bar{x} < `r q[2]`) = P(\frac{`r q[1]`}{40  * \theta} <   \bar{x} < \frac{`r q[2]`}{40  * \theta}) = 95\% $$
+
+$$IC_{1-\alpha}^{\mu} = (\frac{`r q[1]`}{40  * \theta} \hspace{0.1cm};\hspace{0.1cm}   \frac{`r q[2]`}{40  * \theta})$$ 
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+q <- round(c(q[1]/(40*theta),q[2]/(40*theta)),2)
+q
+```
+
+$$IC_{1-\alpha}^{\mu} = (`r q[1]` \hspace{0.1cm};\hspace{0.1cm}   `r q[2]`)$$ 
+
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+
+```
+
+
+### 10) IC 95% de confiança para a média
+b) Usando a aproximação pelo Teorema Central do Limite, temos que 
+
+$$IC_{1-\alpha}^{\mu} = (\bar{x}+s*Z_{\frac{\alpha}{2}} \hspace{0.1cm};\hspace{0.1cm}   \bar{x}+s*Z_{1-\frac{\alpha}{2}})$$ 
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+mu <- mean(tempo)
+s <- sd(tempo)
+q <- round(c(mu+s*(qnorm(.025)/sqrt(20)),mu+s*(qnorm(.975))/sqrt(20)),2)
+q
+```
+
+$$IC_{1-\alpha}^{\mu} = (`r q[1]` \hspace{0.1cm};\hspace{0.1cm}   `r q[2]`)$$ 
+
+### 11)
+
+Para encontrar os valores do intervalo de confiança para a mediana, deve-se encontrar os valores r e s, para serem utilizados como as posições da amostra. Onde r é 
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+x <- pbinom(0:20, 20, .5)
+r <- sum(x < 0.025)
+s <- sum(x < 0.975) + 1
+p_valor <- round(1 - (pbinom(r, 20, .5) + 1 - pbinom(s, 20, .5)),4)*100
+cat(paste("r:",r,"; s:",s))
+X <- tempo[c(r,s)]
+```
+
+Utilizando os valores posicionais de r e s calculados, obtemos que o Intervalo de Confiança 95% para o terceiro quartil é:
+
+$$ X^{(`r r`)} = `r X[1]` \hspace{1cm} X^{(`r s`)} = `r X[2]` \hspace{1cm} IC_{95\%}^{Q_{3}} = [`r X[1]`,`r X[2]`]$$
+
+O grau de confiança realmente obtido foi: $`r p_valor` \%$
+
+### 12)
+
+Hipótese do pesquisador: A meditação aumenta o tempo de sono.
+$$H_0: P[+] = P[-] = 0.5 \hspace{1cm} H_1: P[+] > P[-]$$
+
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+n <- 20
+trat <- c(35, 33, 24, 30, 28, 40, 31, 45, 38, 48, 30, 27, 33, 44, 32, 45, 28, 35, 29, 42, 
+           30, 38, 30, 38, 33, 40, 32, 30, 34, 35, 36, 42, 27, 40, 22, 45, 31, 44, 38, 35)
+antes <- trat[seq(1,40,by=2)]
+depois <- trat[seq(2,40,by=2)]
+cat("Maior: ", sum(depois > antes), "Menor:", n-sum(depois > antes))
+p <- 0.5
+obs <- sum(depois > antes)
+ex12 <- bint(n, p, obs, h1 = "direita")
+ex12$plot
+knitr::kable(ex12$data, caption = paste("Binomial (",n,",",p,")"),
+             col.names = c("X", "Pontual", "Acumulada"))
+```
+
+Como mostrado na tabela acima, o valor observado na amostra (16) ocorreu na região de rejeição (X $\geq$ 14), e portanto rejeitamos a hipótese $H_0: p = 0.5$. Temos assim relevância estatística para acreditar que a amostra observada realmente teve um aumento do tempo de sono ocasionado pela prática da meditação.
+
+
+### 13)
+
+Hipótese do pesquisador: A marca A é melhor do que a marca B.
+$$H_0: P[A] = P[B] = 0.5 \hspace{1cm} H_1: P[A] \neq P[B] \neq 0.5$$
+
+
+```{r, warning=FALSE, echo=FALSE, results=TRUE}
+n <- 26
+p <- 0.5
+obs <- 18
+ex13 <- bint(n, p, obs, )
+ex13$plot
+knitr::kable(ex13$data, caption = paste("Binomial (",n,",",p,")"),
+             col.names = c("X", "Pontual", "Acumulada"))
+```
+
+Como mostrado na tabela acima, o valor observado na amostra (18) ocorreu na região de rejeição (X $\leq$ 7 ou X $\geq$ 18), e portanto rejeitamos a hipótese $H_0: P[A] = P[B]$, em favor de $H_1: P[A] \neq P[B] \neq 0.5$$. Temos assim relevância estatística para acreditar que há uma diferença na escolha entre as marcas A e B.
+
+### 14)
+
+a) 1ª Abordagem:
+Para esse caso, podemos utilizar o teste não paramétrico do sinal. Realizam-se n medições pareadas independentes entre $\mu$ e $\mu^*$ e a atribuímos a Y a contagem de quantas vezes $\mu>\mu^*$. Ao final, consultamos numa tabela da distribuição Binominal com paramêtros n (número de pares medidos) e p = 0.5. Como o teste é unilateral a direita, escolhemos um $Lim$ para x , o qual contenha $\alpha\%$ de massa  de probabilidade. Se $Y > Lim$, rejeita-se $H_0: \mu = \mu^*$ em favor de $H_1: \mu > \mu^*$.
+
+b) 2ª Abordagem:
+Como desenvolvido para a distribuição exponencial na questão 10)a), sabemos que $\chi^2 = 2 \mu  n\bar{x} \sim \chi^2_{2n}$. Desenvolvendo:
+
+$$ P(\chi^2_\frac{\alpha}{2}(2n) < 2 \mu  n \bar{x} < \chi^2_{1-\frac{\alpha}{2}}(2n)) = 1-\alpha$$
+
+$$ P(\frac{\chi^2_\frac{\alpha}{2}(2n)}{ 2n \bar{x}} < \mu < \frac{\chi^2_{1-\frac{\alpha}{2}}(2n)}{ 2n \bar{x}}) = 1-\alpha$$
+
+Como o teste de hipótese é unilateral a direita:
+
+$$ P( \mu < \frac{\chi^2_{1-\alpha}(2n)}{ 2n \bar{x}}) = 1-\alpha$$
+
+
+$$ P( \mu < \frac{\chi^2_{1-\alpha}(2n)}{ 2n \bar{x}}) = 95\% \Longleftrightarrow  P( \mu > \frac{\chi^2_{1-\alpha}(2n)}{ 2n \bar{x}}) = 5\%$$
+Podemos generalizar ainda mais ao lembrar da relação entre a Qui-Quadrado e a distribuição F de Fisher-Snedecor: $\frac{\chi^2(n)}{n} = F(n,\infty)$.
+
+$$ P( \mu\bar{x} < F(n,\infty)) = 95\% \Longleftrightarrow  P( \mu\bar{x} > F(n,\infty)) = 5\%$$
+
+
+Podemos definir as hipóteses e a regra de decisão: 
+
+$H_0: \mu = \mu^* \hspace{1cm} H_1: \mu > \mu^*$.
+
+Se p-valor < $\alpha = 0.05$: Rejeita-se $H_0$.
+
+Se p-valor $\geq \alpha = 0.05$: Não rejeita-se $H_0$.

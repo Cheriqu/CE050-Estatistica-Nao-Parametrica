@@ -1,0 +1,380 @@
+---
+lang: "pt-br"
+output:
+  pdf_document:
+    extra_dependencies: ["float"]
+    latex_engine: xelatex
+header-includes:
+   - \usepackage{cancel}
+   - \usepackage{fancyhdr}
+   - \pagestyle{fancy}
+   - \fancyhf{}  
+   - \renewcommand{\headrulewidth}{0pt}  
+   - \fancyfoot[L]{\includegraphics[width=2cm]{logo.png}}
+   - \fancyfoot[C]{}
+   - \fancyfoot[R]{Página \thepage}
+---
+
+\begin{titlepage}
+\centering
+\includegraphics[width=3cm]{logo.png}
+\vfill
+{\Huge Estatística Não Paramétrica\par}
+{\huge Trabalho 3\par}
+\vspace{1cm}
+{\Large Luiz Francisco - GRR20213026 \par}
+\vfill
+{\large dezembro/2023 \par}
+\end{titlepage}
+
+## 1) Hipóteses:
+
+$$H_0: NivelDor_A = NivelDor_B$$
+$$H_1: NivelDor_A \neq NivelDor_B$$
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+n <- 18
+m <- 20
+N <- n + m
+cat("Amostra Hospital A:", m, "\nAmostra Hospital B:", n, "\nTotal de Amostras:", N)
+dados1 <- data.frame(Hospital = c(rep("A", 20), rep("B", 18)),
+                  Paciente = c(seq(1:m), seq(1:n)),
+                  NivelDor = c(5, 7, 6, 8, 5, 4, 9, 4, 7, 7, 7, 6, 7, 7, 6, 5, 8, 6, 6,
+                               8, 4, 7, 6, 5, 5, 6, 6, 7, 8, 4, 3, 5, 4, 4, 6, 5, 3, 4))
+knitr::kable(dados1)
+```
+
+Ordenamos então o nível de dor e calculamos os postos correspondentes.
+
+```{r, warning=FALSE, message=FALSE}
+dados1 <- dados1 %>% mutate(Postos = rank(dados1$NivelDor)) %>% arrange(Postos)
+knitr::kable(dados1)
+```
+
+Realizamos a soma de postos de correspondentes para cada categoria, obtendo assim a estatística de teste U.
+
+```{r, warning=FALSE, message=FALSE}
+U <- dados1 %>% group_by(Hospital) %>% summarise(U = sum(Postos))
+knitr::kable(U)
+```
+
+Calculamos então a estatística de teste, com muitos empates, para a diferença de tratamentos entre hospital A e B: 
+$$ U_1 = \frac{U  \frac{-n(N+1)}{2}}{\sqrt{\frac{nm}{N(N-1)}\sum_{i=1}^2{U_i^2}\frac{-nm(N+1)^2}{ 4 (N - 1)}}}$$
+
+```{r, warning=FALSE, message=FALSE}
+U1 <- (U$U[2] - n * (N + 1)/2) /
+      sqrt((n * m / (N * (N - 1))) * sum(U$U)^2 - (n * m * (N + 1)^2 / (4 * (N - 1))))
+cat("Estatística de Teste = ", U1)
+```
+
+Realizamos a padronização:
+$$ Z = \frac{U_1 + 0.5 - n\frac{N + 1}{2}}{ \sqrt{\frac{n m (N + 1) }{12}}}$$
+
+
+```{r, warning=FALSE, message=FALSE}
+Z <- (U1 + 1/2 - n * (N + 1)/2) / sqrt(n * m * (N + 1) / 12)
+cat("Estatística de Teste Padronizada = ", Z)
+```
+
+Verificamos então o _p-valor_ correspondente:
+
+```{r, warning=FALSE, message=FALSE}
+p <- 2 * min(pnorm(Z), pnorm(Z, lower.tail = F))
+cat("p-valor = ", p)
+```
+
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+x <- seq(-11, 5, by = 0.01)
+y <- dnorm(x)
+norm <- data.frame(x = x, y = y)
+vc1<- qnorm(0.025)
+vc2 <- qnorm(0.975)
+ggplot(norm, aes(x = x, y = y)) +
+geom_line(linewidth = 1) +
+geom_line(aes(x = Z), color = "black") +
+geom_segment(aes(x = vc1, y = 0,
+xend = vc1,
+yend = y[which.min(abs(x - vc1))]),
+color = "red", linewidth = 0.5) +
+geom_segment(aes(x = vc2, y = 0,
+xend = vc2,
+yend = y[which.min(abs(x - vc2))]),
+color = "red", linewidth = 0.5) +
+geom_text(aes(x = vc1, y = -0.01, label = "Z(0.025)"), color = "red", size = 2) +
+geom_text(aes(x = vc2, y = -0.01, label = "Z(0.975)"), color = "red", size = 2) +
+geom_text(aes(x = Z, y = -0.01, label = "Z"), color = "black", size = 2) +
+labs(title = "Normal Padrão",
+x = "Valores",
+y = "Densidade")
+```
+
+Verificamos que o _p-valor_ calculado (1.136919e-24) é menor que $\frac{\alpha}{2} = 0.025$ e, portanto, a estatística Z de teste está dentro da região crítica. Por esse resultado, temos evidência estatística para a rejeição de $H_0$, assumindo então: $H_1: NivelDor_A \neq NivelDor_B$. Para o pesquisador, sintetizamos que o nível de dor entre os dois hospitais é diferente.
+
+
+## 2) Hipóteses:
+
+$$H_0: Treinamento_T = Treinamento_C$$
+$$H_1: Treinamento_T > Treinamento_C$$
+
+```{r, warning=FALSE, message=FALSE}
+n <- 10
+m <- 8
+N <- n + m
+dados2 <- data.frame(Classif = seq(1:18),
+                    Treinamento = c("C", "C", "T", "T", "C", "C", "C", "C", "T",
+                                    "T", "C", "T", "C", "T", "T", "T", "T", "T"))
+knitr::kable(dados2)
+
+cat("Amostra Hospital A:", m, "\nAmostra Hospital B:", n, "\nTotal de Amostras:", N)
+```
+
+Realizamos a soma de postos de correspondentes para cada categoria, obtendo assim a estatística de teste U.
+
+```{r, warning=FALSE, message=FALSE}
+U <- dados2 %>% group_by(Treinamento) %>% summarise(U = sum(Classif))
+knitr::kable(U)
+
+cat("Estatística de Teste = ",  U$U[2])
+```
+
+A estatística de teste utilizada foi a soma das classificações de cada treinamento, e nesse caso foi considerada a de maior valor, do Treinamento T. Realizamos então a padronização:
+$$ Z = \frac{U + 0.5 - n\frac{N + 1}{2}}{ \sqrt{\frac{n m (N + 1) }{12}}}$$
+
+
+```{r, warning=FALSE, message=FALSE}
+Z <- (U$U[2]  + 1/2 - n * (N + 1)/2) / sqrt(n * m * (N + 1) / 12)
+cat("Estatística de Teste Padronizada = ", Z)
+```
+
+Verificamos então o _p-valor_ correspondente:
+
+```{r, warning=FALSE, message=FALSE}
+p <- 2 * min(pnorm(Z), pnorm(Z, lower.tail = F))
+cat("p-valor = ", p)
+```
+
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+x <- seq(-3, 3, by = 0.01)
+y <- dnorm(x)
+norm <- data.frame(x = x, y = y)
+vc<- qnorm(0.95)
+
+ggplot(norm, aes(x = x, y = y)) +
+geom_line(linewidth = 1) +
+geom_line(aes(x = Z), color = "black") +
+geom_segment(aes(x = vc, y = 0,
+xend = vc,
+yend = y[which.min(abs(x - vc))]),
+color = "red", linewidth = 0.5) +
+geom_text(aes(x = vc, y = -0.01, label = "Z(0.95)"), color = "red", size = 2) +
+geom_text(aes(x = Z, y = -0.01, label = "Z"), color = "black", size = 2) +
+labs(title = "Normal Padrão",
+x = "Valores",
+y = "Densidade")
+```
+
+Verificamos que o _p-valor_ calculado (0.03679515) é menor que $\alpha = 0.05$ e, portanto, a estatística Z de teste está dentro da região crítica. Por esse resultado, temos evidência estatística para a rejeição de $H_0$, assumindo então: $H_1: Treinamento_T > Treinamento_C$. Para o pesquisador, sintetizamos que a aptidão física medida dos pacientes do treinamento T é maior do que para o treinamento C.
+
+
+## 3) Hipóteses:
+
+$$H_0: Batimentos_D = Batimentos_A$$
+$$H_1: Batimentos_D < Batimentos_A$$
+
+
+```{r, warning=FALSE, message=FALSE}
+
+dados3 <-  data.frame(Paciente = seq(1:15),
+                      Antes = c(125, 132, 138, 120, 125, 127, 136, 139,
+                                131, 132, 135, 136, 128, 127, 130),
+                      Depois = c(118, 134, 130, 124, 105, 130, 130, 132,
+                                 123, 128, 126, 140,135, 123, 132))
+knitr::kable(dados3)
+```
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+dados3 <- data.frame(Paciente = rep(seq(1:15), 2), Estágio = c(rep("Antes", 15),
+rep("Depois", 15)),
+Batimentos = c(125, 132, 138, 120, 125, 127, 136, 139, 131,
+132, 135, 136, 128, 127, 130, 118, 134, 130,
+124, 105, 130, 130, 132, 123, 128, 126, 140,
+135, 123, 132))
+```
+
+Vamos agora ordenar os batimentos, desconsiderando quando foi medido, se antes os depois.
+
+```{r, warning=FALSE, message=FALSE}
+dados3 <- dados3 %>% mutate(Postos = rank(Batimentos)) %>% arrange(Postos)
+knitr::kable(dados3)
+```
+
+É então calculado D, a diferença de postos nos estágios antes e depois para cara paciente.
+
+```{r, warning=FALSE, message=FALSE}
+dados3 <- dados3 %>% pivot_wider(names_from = Estágio, values_from = c(Batimentos, Postos)) 
+dados3 <- dados3 %>% mutate(D = Postos_Depois - Postos_Antes)
+knitr::kable(dados3)
+```
+
+A estatística W de teste será dada por:
+
+$$ W = min( |\sum_{D_i < 0} D_i|, |\sum_{D_i > 0} D_i|)$$
+
+```{r, warning=FALSE, message=FALSE}
+PostosPositivos <- dados3 %>% filter(D >= 0) %>% summarise(U = sum(D))
+PostosNegativos <- dados3 %>% filter(D <= 0) %>% summarise(U = -sum(D))
+cat("Soma dos Postos Positivos = ", PostosPositivos$U,
+    "\nSoma dos Postos Negativos = ", PostosNegativos$U)
+W <- min(PostosPositivos$U, PostosNegativos$U)
+cat("Estatística de Teste W = ", W)
+```
+
+Verificando na tabela de quantis do teste de postos sinalizados de Wilcoxon, obtemos que o valor tabelado unilateral para $W_{\alpha = 0.05, n=15} = 31$. Como $W = W_{\alpha = 0.05, n=15}$ dizemos que não temos evidência estatística para a rejeição da hipótese nula $H_0: Batimentos_D = Batimentos_A$. Para o pesquisador, podemos dizer que os batimentos aparentam não serem reduzidos pelo tratamento.
+
+Cabe ressaltar que o valor obtido para $W$ foi exatamente a linha de corte da tabela $W_{\alpha = 0.05, n=15}$, e que a hipótese $H_0$ seria rejeitada caso fosse definido um nível de confiança menor. Para 90%, por exemplo, $W < W_{\alpha = 0.10, n=15} = 37$, o que resultaria na rejeição de $H_0$.
+
+
+## 4) Hipóteses:
+
+
+
+
+\begin{align*}
+H_0: DorMedicamento_1 = DorMedicamento_2 = DorMedicamento_3\\
+\\
+H_1: DorMedicamento_1 \neq DorMedicamento_2 = DorMedicamento_3 \\
+H_1: DorMedicamento_1 = DorMedicamento_2 \neq DorMedicamento_3 \\
+H_1: DorMedicamento_1 \neq DorMedicamento_2 \neq DorMedicamento_3
+\end{align*}
+
+```{r, warning=FALSE, message=FALSE}
+dados4 <- data.frame(Medicamento = c(rep("1", 7), rep("2", 7), rep("3", 7)),
+                           NivelDor = c(7, 8, 7, 6, 9, 8, 6, 5, 4, 6, 7,
+                                        4, 5, 7, 6, 6, 4, 6, 5, 4, 7))
+knitr::kable(dados4)
+
+
+```
+
+Vamos agora ordenar pelo nível de dor e calcular os postos correspondentes a cada observação.
+
+```{r, warning=FALSE, message=FALSE}
+dados4 <- dados4 %>% mutate(Postos = rank(NivelDor)) %>% arrange(Postos)
+knitr::kable(dados4)
+```
+
+Calcula-se então a estatística de teste de _Kruskal-Wallis_. 
+
+$$ H = (N-1) \frac{\sum_{i=1}^g n_i(\bar{r}_{i.}-\bar{r})^2}{\sum_{i=1}^g \sum_{j=1}^{n_i}(\bar{r}_{ij}-\bar{r})^2} $$
+onde:
+$n_i = 7$ é o número de observações de cada grupo, $g = 3$ é o número de grupos, $N = 21$ é o número total de observações, $\bar{r}_{i.}$ é o posto médio de cada grupo e $\bar{r}$ é a média de todos os postos.
+
+```{r, warning=FALSE, message=FALSE}
+N <- nrow(dados4)
+g <- length(unique(dados4$Medicamento))
+n <- N/g
+r_grupo <- tapply(dados4$Postos, dados4$Medicamento, mean)
+r_total <- mean(dados4$Postos)
+
+H <- (N-1) * sum(n *(r_grupo - r_total)^2) / sum((dados4$Postos-r_total)^2)
+cat("Estatística H de teste: ", H)
+```
+
+O valor crítico tabelado para 7 amostras em 3 grupos é $H_c = 5.819$. Como o $H$ calculado é maior que $H_c$ rejeita-se, portanto, a hipótese nula $H_0$ de igual nível de dor entre os medicamentos. Para o pesquisador, podemos dizer que houve evidência estatística que corrobora a diferença de nível de dor entre os medicamentos.
+
+Vamos agora realizar exatamente o mesmo procedimento, porém filtrando somente dois medicamentos por vez, para verificar a diferença dos tratamentos dois a dois.
+
+```{r, warning=FALSE, message=FALSE}
+dados4 <- data.frame(Medicamento = c(rep("1", 7), rep("2", 7), rep("3", 7)),
+                           NivelDor = c(7, 8, 7, 6, 9, 8, 6, 5, 4, 6, 7,
+                                        4, 5, 7, 6, 6, 4, 6, 5, 4, 7))
+
+dados4_M_1_2 <- dados4 %>% filter(Medicamento == "1" | Medicamento == "2" ) %>%
+                           mutate(Postos = rank(NivelDor)) %>% arrange(Postos)
+N_M_1_2 <- nrow(dados4_M_1_2)
+g_M_1_2 <- length(unique(dados4_M_1_2$Medicamento))
+n_M_1_2 <- N_M_1_2/g_M_1_2
+r_grupo_M_1_2 <- tapply(dados4_M_1_2$Postos, dados4_M_1_2$Medicamento, mean)
+r_total_M_1_2 <- mean(dados4_M_1_2$Postos)
+
+H_M_1_2 <- (N_M_1_2-1) * sum(n_M_1_2 *(r_grupo_M_1_2 - r_total_M_1_2)^2) /
+                         sum((dados4_M_1_2$Postos-r_total_M_1_2)^2)
+cat("Estatística H de teste: ", H_M_1_2)
+```
+
+O valor crítico tabelado para 7 amostras em 2 grupos é $H_c = 3.841$. Como o $H$ calculado é maior que $H_c$ rejeita-se, portanto, a hipótese nula $H_0$ de igual nível de dor entre os medicamentos. Para o pesquisador, podemos dizer que houve evidência estatística que corrobora a diferença de nível de dor entre os medicamentos 1 e 2.
+
+```{r, warning=FALSE, message=FALSE}
+dados4_M_1_3 <- dados4 %>% filter(Medicamento == "1" | Medicamento == "3" ) %>%
+                           mutate(Postos = rank(NivelDor)) %>% arrange(Postos)
+N_M_1_3 <- nrow(dados4_M_1_3)
+g_M_1_3 <- length(unique(dados4_M_1_3$Medicamento))
+n_M_1_3 <- N_M_1_3/g_M_1_3
+r_grupo_M_1_3 <- tapply(dados4_M_1_3$Postos, dados4_M_1_3$Medicamento, mean)
+r_total_M_1_3 <- mean(dados4_M_1_3$Postos)
+
+H_M_1_3 <- (N_M_1_3-1) * sum(n_M_1_3 *(r_grupo_M_1_3 - r_total_M_1_3)^2) /
+                         sum((dados4_M_1_3$Postos-r_total_M_1_3)^2)
+cat("Estatística H de teste: ", H_M_1_3)
+```
+
+O valor crítico tabelado para 7 amostras em 2 grupos é $H_c = 3.841$. Como o $H$ calculado é maior que $H_c$ rejeita-se, portanto, a hipótese nula $H_0$ de igual nível de dor entre os medicamentos. Para o pesquisador, podemos dizer que houve evidência estatística que corrobora a diferença de nível de dor entre os medicamentos 1 e 3.
+
+```{r, warning=FALSE, message=FALSE}
+dados4_M_2_3 <- dados4 %>% filter(Medicamento == "2" | Medicamento == "3" ) %>%
+                           mutate(Postos = rank(NivelDor)) %>% arrange(Postos)
+N_M_2_3 <- nrow(dados4_M_2_3)
+g_M_2_3 <- length(unique(dados4_M_2_3$Medicamento))
+n_M_2_3 <- N_M_2_3/g_M_2_3
+r_grupo_M_2_3 <- tapply(dados4_M_2_3$Postos, dados4_M_2_3$Medicamento, mean)
+r_total_M_2_3 <- mean(dados4_M_2_3$Postos)
+
+H_M_2_3 <- (N_M_2_3-1) * sum(n_M_2_3 *(r_grupo_M_2_3 - r_total_M_2_3)^2) /
+                         sum((dados4_M_2_3$Postos-r_total_M_2_3)^2)
+cat("Estatística H de teste: ", H_M_2_3)
+```
+
+O valor crítico tabelado para 7 amostras em 2 grupos é $H_c = 3.841$. Como o $H$ calculado é menor que $H_c$ não rejeita-se, portanto, a hipótese nula $H_0$ de igual nível de dor entre os medicamentos. Para o pesquisador, podemos dizer que houve evidência estatística que corrobora a igualdade de nível de dor entre os medicamentos 2 e 3.
+
+## 5) Hipóteses:
+
+
+\begin{align*}
+H_0: RankCurso_1 = RankCurso_2 = RankCurso_3\\
+\\
+H_1: RankCurso_1 \neq RankCurso_2 = RankCurso_3 \\
+H_1: RankCurso_1 = RankCurso_2 \neq RankCurso_3 \\
+H_1: RankCurso_1 \neq RankCurso_2 \neq RankCurso_3
+\end{align*}
+
+
+```{r, warning=FALSE, message=FALSE}
+dados5 <- data.frame(Participante = seq(1:10),
+                     Curso1 = c(3, 1.5, 1.5, 1, 2, 2, 2, 2, 3, 1.5),
+                     Curso2 = c(1, 1.5, 1.5, 2, 1, 1, 1, 1, 1, 1.5),
+                     Curso3 = c(2, 3, 3, 3, 3, 3, 3, 3, 2, 3))
+knitr::kable(dados5)
+```
+
+Para esse problema, iremos realizar o teste de Friedman, dado pela estatística de teste:
+
+$$ Q = \frac{SS_t}{SS_e} = \frac{n \sum_{j=1}^k (\bar{r}_{.j}-\bar{r})^2}{\frac{1}{n(k-1)} \sum_{i=1}^n \sum_{j=1}^k (r_{ij}-\bar{r})^2}$$
+
+onde: $n = 10$ é o número de participantes, $k = 3$ é o número de categorias (cursos), $r_{ij}$ são os postos individuais, $\bar{r}_{.j}$ é a média de postos por categoria e $\bar{r}$ é a média de postos geral. Nesse problema, os dados obtidos já estão codificados da forma correta em postos, portanto não é necessária realizar essa etapa de ordenamento e definição de postos. Calculamos então Q.
+
+```{r, warning=FALSE, message=FALSE}
+n <- nrow(dados5)
+k <- length(dados5[,-1])
+r_grupo <- colMeans(dados5[,-1])
+r_total <- sum(dados5[,-1])/(n*k)
+
+Q <- (n*sum((r_grupo-r_total)^2))/((1/(n*(k-1)))*sum((dados5[,-1]-r_total)^2))
+cat("Estatística H de teste: ", Q)
+```
+
+O valor crítico tabelado para 10 participantes em 3 grupos é $Q_c = 6.2$. Como o $Q$ calculado é maior que $H_c$ rejeita-se, portanto, a hipótese nula $H_0$ de igual nível de rank (ou preferência) entre os três cursos. Para o pesquisador, podemos dizer que houve evidência estatística que corrobora a diferença de preferência entre os três cursos.
