@@ -11,7 +11,8 @@ O conteúdo está dividido em três etapas principais, cobrindo os testes não p
 ### Trabalho 1: Testes de Aderência e Localização (1 e 2 amostras)
 * **Aleatoriedade:** Teste de Sequências (Runs Test de Wald-Wolfowitz).
 * **Aderência e Normalidade:** Testes de Kolmogorov-Smirnov e Shapiro-Wilk.
-* **Comparação de duas amostras:** - Teste de Mann-Whitney (Wilcoxon Rank-Sum) para amostras independentes.
+* **Comparação de duas amostras:**
+  - Teste de Mann-Whitney (Wilcoxon Rank-Sum) para amostras independentes.
   - Teste de Wilcoxon (Signed-Rank) para amostras pareadas.
 
 ### Trabalho 2: Comparação de $k$ Amostras
